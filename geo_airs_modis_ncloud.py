@@ -6,7 +6,10 @@ import geo
 import numpy as np
 import netCDF4 as nc4
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
+import logging
+
+module_logger = logging.getLogger("airs_modis_parallel_run_matchup.geo_airs_modis_ncloud")
 
 # func to do the colocation
 def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
@@ -20,7 +23,7 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     #success=geo.convert_modis_cloudflag(modis_cloud)
     flen=len(modis_geo_files)
-    print(airs_files,modis_geo_files)
+    print(airs_files, modis_geo_files)
     #print("MODIS byte conversion are done in --- %s seconds --- for %d files " % (time.time() - start_time, flen))
 
     # read AIRS data 
@@ -91,16 +94,75 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     # add global attributes
         
-    f.VERSION = '1'
-    f.SHORT_NAME = "??? SNPP_CrIS_VIIRS750m_IND"
-    f.TITLE = "??? SNPP CrIS-VIIRS 750-m Matchup Indexes V1"
-    f.IDENTIFIER_PRODUCT_DOI_AUTHORITY = "??? http://dx.doi.org/"
-    f.IDENTIFIER_PRODUCT_DOI = "??? 10.5067/MEASURES/WVCC/DATA211"
+    f.VERSION = '010'
+    f.SHORT_NAME = "Aqua_AIRS_MODIS1km_IND"
+    f.TITLE = "Aqua AIRS-MODIS 1-km Matchup Indexes V1"
+    f.IDENTIFIER_PRODUCT_DOI_AUTHORITY = "http://dx.doi.org/"
+    f.IDENTIFIER_PRODUCT_DOI = "10.5067/MEASURES/WVCC/DATA210"
         
     ct = datetime.now()
     f.PRODUCTIONDATE = ct.isoformat()
 
-    f.description="Version-1 AIRS-MODIS collocation index product by the project of Multidecadal Satellite Record of Water Vapor, Temperature, and Clouds (PI: Eric Fetzer) funded by NASA’s Making Earth System Data Records for Use in Research Environments (MEaSUREs) Program following Wang et al. (??? 2016, https://doi.org/10.3390/rs8010076) and Yue et al. (??? 2022, https://doi.org/10.5194/amt-15-2099-2022)."
+    f.description="Version-1 AIRS-MODIS 1km collocation index product by the project of Multidecadal Satellite Record of Water Vapor, Temperature, and Clouds (PI: Eric Fetzer) funded by NASA’s Making Earth System Data Records for Use in Research Environments (MEaSUREs) Program following Wang et al. (2016, https://doi.org/10.3390/rs8010076) and Yue et al. (2022, https://doi.org/10.5194/amt-15-2099-2022)."
+
+    f.TIME_TOLERANCE = "??? 900 seconds"
+    f.DISTANCE_TOLERANCE = "??? CrIS FOV size angle 0.963 deg divided by 2"
+
+    # get source granule info
+    nf = 0
+    try:
+      f.MODIS_FILE1 = os.path.basename(modis_geo_files[0])
+      nf += 1
+    except IndexError:
+      pass
+        
+    try:
+      f.MODIS_FILE2 = os.path.basename(modis_geo_files[1])
+      nf += 1
+    except IndexError:
+      pass
+        
+    try:
+      f.MODIS_FILE3 = os.path.basename(modis_geo_files[2])
+      nf += 1
+    except IndexError:
+      pass
+        
+    nf = np.int32(nf)
+    f.MODIS_FILES_COUNT = nf
+
+    output_filename = os.path.join('product_root_dir', 'hello')
+
+    if nf < 3:
+      module_logger.info('Warning: there are {0} input MODIS granules for {1}, not 3 as usual!'.format(nf, output_filename))
+
+    modis_str = os.path.basename(modis_geo_files[0])
+    f.MODIS_FILE = modis_str
+
+    # open f1 the AIRS hdf file and get start/end time
+    time1 = geo.read_airs_time(airs_files)
+    print('time1: ', time1)
+    starttime = time1[0][0]
+    starttime = datetime(1993,1,1,0,0) + timedelta(seconds=starttime)
+    endtime = time1[-1][-1]
+    endtime = datetime(1993,1,1,0,0) + timedelta(seconds=endtime)
+    
+    print ('starttime: ', starttime, ' , endtime: ', endtime)
+    
+    start_date = starttime.strftime('%Y-%m-%dT%H:%M:%SZ')
+    end_date   = endtime.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    f.RANGEBEGINNINGDATE = start_date.split('T')[0]
+    f.RANGEBEGINNINGTIME = start_date.split('T')[1].replace('Z', '')
+    f.RANGEENDINGDATE = end_date.split('T')[0]
+    f.RANGEENDINGTIME = end_date.split('T')[1].replace('Z', '')
+
+
+
+
+
+
+
 
     f.close()
         
