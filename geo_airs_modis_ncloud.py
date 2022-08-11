@@ -136,8 +136,8 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     if nf < 3:
       module_logger.info('Warning: there are {0} input MODIS granules for {1}, not 3 as usual!'.format(nf, output_filename))
 
-    modis_str = os.path.basename(modis_geo_files[0])
-    f.MODIS_FILE = modis_str
+    airs_str = os.path.basename(airs_files[0])
+    f.AIRS_FILE = airs_str
 
     # open f1 the AIRS hdf file and get start/end time
     time1 = geo.read_airs_time(airs_files)
@@ -157,12 +157,20 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     f.RANGEENDINGDATE = end_date.split('T')[0]
     f.RANGEENDINGTIME = end_date.split('T')[1].replace('Z', '')
 
+    lon_min = min(map(min, airs_lon))
+    lat_min = min(map(min, airs_lat))
+    lon_max = max(map(max, airs_lon))
+    lat_max = max(map(max, airs_lat))
 
-
-
-
-
-
+    # from target granule's global attributes
+    ### f.cris_min_lat = lat_min
+    f.SOUTHBOUNDINGCOORDINATE = lat_min
+    ### f.cris_min_lon = lon_min
+    f.WESTBOUNDINGCOORDINATE = lon_min
+    ### f.cris_max_lat = lat_max
+    f.NORTHBOUNDINGCOORDINATE = lat_max
+    ### f.cris_max_lon = lon_max
+    f.EASTBOUNDINGCOORDINATE = lon_max
 
     f.close()
         
