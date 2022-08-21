@@ -10,6 +10,8 @@ from pyhdf.HDF import *
 from pyhdf.VS import *
 import netCDF4
 
+### from pyhdf.SD import SD, SDC
+### from pyhdf import HDF, VS, V
 
 from pykdtree.kdtree import KDTree
 
@@ -350,6 +352,27 @@ def find_match_index (cris_los, cris_sat, viirs_pos_in, viirs_sdrQa_in, \
 ##############################################################################################
 
 
+def read_modis_time(infiles):
+
+
+    n=0
+    time1 = []
+    for f in infiles:
+      try:
+        file = SD(f, SDC.READ)
+
+        sds_obj = file.select('EV start time')        
+        ### print('sds_obj: ', sds_obj)
+        time1 = np.vstack((time1, sds_obj.get())) if n > 0 else sds_obj.get()
+        ### print('time1.shape: ', time1.shape)
+
+        n=n+1
+      except HDF4Error:
+        continue
+
+    return time1
+
+
 def read_modis_geo(infiles):
 
 
@@ -358,10 +381,12 @@ def read_modis_geo(infiles):
         file = SD(f, SDC.READ)
 
         sds_obj = file.select('Latitude')        
+        print('sds_obj: ', sds_obj)
         lat = np.vstack((lat, sds_obj.get())) if n > 0 else sds_obj.get()
-        print(lat.shape)
+        print('lat.shape: ', lat.shape)
         sds_obj = file.select('Longitude')
         lon = np.vstack((lon, sds_obj.get())) if n > 0 else sds_obj.get()
+        print('lon: ', lon)
         sds_obj = file.select('SensorAzimuth')
         satAzi = np.vstack((satAzi, sds_obj.get())) if n > 0 else sds_obj.get()
 
@@ -453,6 +478,20 @@ def convert_modis_cloudflag(modis_cloud):
     return 1
             
 
+def read_airs_time(infiles):
+
+    n=0
+    for f in infiles:
+        file = SD(f, SDC.READ)
+
+        sds_obj = file.select('Time')        
+        time1 = np.vstack((time1, sds_obj.get())) if n > 0 else sds_obj.get()
+
+        n=n+1
+    return time1
+
+
+
 def read_airs_geo(infiles):
 
 
@@ -502,7 +541,6 @@ def read_airs_weightfunc(infile):
     return weightfunc
 
 
-    
 ##################################################################################### 
 def match_sounder_imager(sounderLos, sounderPos, imagerPos, imagerMask, dofootestimate=1):
     """
@@ -760,4 +798,23 @@ def find_match_index_noweight (sounder_los, sounder_sat, imager_pos_in, imager_s
     
 
 ##############################################################################################
+
+# func to get hdf attributes 
+def hdf_attributes(file_name, list_names):
+
+  list_values = []
+
+  h = HDF(file_name)
+  vs = h.vstart()
+
+  for name1 in list_names:
+    xid = vs.find(name1)
+    stid = vs.attach(xid)
+    nrecs, intmode, fields, size, name = stid.inquire()
+    x = stid.read(nrecs)
+    list_values.append(x[0][0])
+    
+  stid.detach()
+  return list_values
+    
 
