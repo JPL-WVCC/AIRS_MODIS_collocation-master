@@ -51,14 +51,21 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     # use this name: IND_AIRS_MODIS.2016.01.30.240.L1B.AIRS_Rad.v5.0.23.0.G16031113544
     airs_file = os.path.basename(airs_files[0])
 
-    output_basename = airs_file.replace('AIRS.', 'IND_AIRS_MODIS.')[0:-4]
+    output_basename = airs_file.replace('AIRS.', 'IND_AIRS_MODIS1km.')[0:-4]
+    pos1 = output_basename.find('.L1B')
+    output_basename = output_basename[:pos1]
 
     ### f = nc4.Dataset('/raid15/leipan/VIIRS/MODIS/201601/Index/IND_AIRS_MODISMOD_201601'+str(iday)+'_'+str(i)+'.nc','w', format='NETCDF4') #'w' stands for write
 
+    # do not introduce this level of subdir
+    """
     subdir1 = os.path.join(output_dir, output_basename)
     if os.path.exists(subdir1) == False:
       os.makedirs(subdir1)
     output_nc_file = os.path.join(output_dir, output_basename, output_basename+'.nc')
+    """
+
+    output_nc_file = os.path.join(output_dir, output_basename+'.nc')
 
     ### f = nc4.Dataset(output_dir+'IND_AIRS_MODISMOD_201601'+str(iday)+'_'+str(i)+'.nc','w', format='NETCDF4') #'w' stands for write
     f = nc4.Dataset(output_nc_file, 'w', format='NETCDF4') #'w' stands for write
@@ -94,7 +101,7 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     # add global attributes
         
-    f.VERSION = '010'
+    f.VERSION = '1'
     f.SHORT_NAME = "Aqua_AIRS_MODIS1km_IND"
     f.TITLE = "Aqua AIRS-MODIS 1-km Matchup Indexes V1"
     f.IDENTIFIER_PRODUCT_DOI_AUTHORITY = "http://dx.doi.org/"
@@ -105,8 +112,8 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     f.description="Version-1 AIRS-MODIS 1km collocation index product by the project of Multidecadal Satellite Record of Water Vapor, Temperature, and Clouds (PI: Eric Fetzer) funded by NASA’s Making Earth System Data Records for Use in Research Environments (MEaSUREs) Program following Wang et al. (2016, https://doi.org/10.3390/rs8010076) and Yue et al. (2022, https://doi.org/10.5194/amt-15-2099-2022)."
 
-    f.TIME_TOLERANCE = "??? 900 seconds"
-    f.DISTANCE_TOLERANCE = "??? CrIS FOV size angle 0.963 deg divided by 2"
+    f.TIME_TOLERANCE = "900 seconds"
+    f.DISTANCE_TOLERANCE = "AIRS FOV size angle 1.1 deg divided by 2"
 
     # get source granule info
     nf = 0
@@ -139,38 +146,59 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     airs_str = os.path.basename(airs_files[0])
     f.AIRS_FILE = airs_str
 
-    # open f1 the AIRS hdf file and get start/end time
-    time1 = geo.read_airs_time(airs_files)
-    print('time1: ', time1)
-    starttime = time1[0][0]
-    starttime = datetime(1993,1,1,0,0) + timedelta(seconds=starttime)
-    endtime = time1[-1][-1]
-    endtime = datetime(1993,1,1,0,0) + timedelta(seconds=endtime)
-    
-    print ('starttime: ', starttime, ' , endtime: ', endtime)
-    
+    print('calling hdf_attributes with ', airs_files[0])
+    attr_name_list = ['start_Time', 'end_Time', 'start_Latitude', 'end_Latitude', 'start_Longitude', 'end_Longitude']
+    attr_dict = geo.hdf_attributes(airs_files[0], attr_name_list)
+    print('attr_dict: ', attr_dict)
+
+    # get AIRS start/end time from attributes
+    starttime = datetime(1993,1,1,0,0) + timedelta(seconds=attr_dict['start_Time'])
+    endtime = datetime(1993,1,1,0,0) + timedelta(seconds=attr_dict['end_Time'])
+
     start_date = starttime.strftime('%Y-%m-%dT%H:%M:%SZ')
     end_date   = endtime.strftime('%Y-%m-%dT%H:%M:%SZ')
 
+    ### print ('f.start_Latitude: ', f.start_Latitude, ' , f.end_Longitude: ', f.end_Longitude)
+
     f.RANGEBEGINNINGDATE = start_date.split('T')[0]
+    print('f.RANGEBEGINNINGDATE: ', f.RANGEBEGINNINGDATE)
+
+
     f.RANGEBEGINNINGTIME = start_date.split('T')[1].replace('Z', '')
     f.RANGEENDINGDATE = end_date.split('T')[0]
     f.RANGEENDINGTIME = end_date.split('T')[1].replace('Z', '')
 
+    # do not get lat lon box from attributes
+    """
+    lon_min = attr_dict['start_Longitude'] # AIRS_START_LONGITUDE
+    lat_min = attr_dict['start_Latitude']
+    lon_max = attr_dict['end_Longitude']
+    lat_max = attr_dict['end_Latitude']
+
+    ### f.SOUTHBOUNDINGCOORDINATE = lat_min
+    f.AIRS_START_LATITUDE = lat_min
+    ### f.WESTBOUNDINGCOORDINATE = lon_min
+    f.AIRS_START_LONGITUDE = lon_min
+    ### f.NORTHBOUNDINGCOORDINATE = lat_max
+    f.AIRS_END_LATITUDE = lat_max
+    ### f.EASTBOUNDINGCOORDINATE = lon_max
+    f.AIRS_END_LONGITUDE = lon_max
+    """
+
+    # rather, get lat lon box from lat lon data
     lon_min = min(map(min, airs_lon))
     lat_min = min(map(min, airs_lat))
     lon_max = max(map(max, airs_lon))
     lat_max = max(map(max, airs_lat))
 
-    # from target granule's global attributes
-    ### f.cris_min_lat = lat_min
-    f.SOUTHBOUNDINGCOORDINATE = lat_min
-    ### f.cris_min_lon = lon_min
-    f.WESTBOUNDINGCOORDINATE = lon_min
-    ### f.cris_max_lat = lat_max
-    f.NORTHBOUNDINGCOORDINATE = lat_max
-    ### f.cris_max_lon = lon_max
-    f.EASTBOUNDINGCOORDINATE = lon_max
+    # f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max) # suggested by Qing
+    f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max)
+    ### f.WESTBOUNDINGCOORDINATE = min(lon_min, lon_max) # suggested by Qing
+    f.WESTBOUNDINGCOORDINATE = min(lon_min, lon_max)
+    ### f.NORTHBOUNDINGCOORDINATE = max(lat_max, lat_min) # suggested by Qing
+    f.NORTHBOUNDINGCOORDINATE = max(lat_max, lat_min)
+    ### f.EASTBOUNDINGCOORDINATE = max(lon_max, lon_min) # suggested by Qing
+    f.EASTBOUNDINGCOORDINATE = max(lon_max, lon_min)
 
     f.close()
         
