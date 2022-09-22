@@ -314,7 +314,7 @@ def find_match_index (cris_los, cris_sat, viirs_pos_in, viirs_sdrQa_in, \
         if nPixel == 3200: nc = np.round(deg2rad(0.963/2)*833.0/0.75*4).astype(np.int)
         if nPixel == 6400: nc = np.round(deg2rad(0.963/2)*833.0/0.375*4).astype(np.int)
 
-        if nPixel == 1354: nc = np.round(deg2rad(0.963/2)*833.0/0.8*4).astype(np.int)
+        ### if nPixel == 1354: nc = np.round(deg2rad(0.963/2)*705.0/1.0*4).astype(np.int)
         
 
         # return list
@@ -753,7 +753,8 @@ def write_cloud_adapt(cloud_adapt, savefile, nx1=-1, nx2=-1):
 
     
 def find_match_index_noweight (sounder_los, sounder_sat, imager_pos_in, imager_sdrQa_in, \
-                      mx, my, fovDia=0.963):
+                      mx, my, fovDia=1.1):
+                      ### mx, my, fovDia=0.963):
 
 
         nLine, nPixel = imager_pos_in.shape[0:2]
@@ -761,10 +762,13 @@ def find_match_index_noweight (sounder_los, sounder_sat, imager_pos_in, imager_s
         
         # setup parameters
         cos_half_fov=cos(deg2rad(fovDia/2.0))
-        if nPixel == 3200: nc = np.round(deg2rad(0.963/2)*833.0/0.75*4).astype(np.int)
-        if nPixel == 6400: nc = np.round(deg2rad(0.963/2)*833.0/0.375*4).astype(np.int)
+        # for SNPP
+        ### if nPixel == 3200: nc = np.round(deg2rad(0.963/2)*833.0/0.75*4).astype(np.int)
+        # for SNPP
+        ### if nPixel == 6400: nc = np.round(deg2rad(0.963/2)*833.0/0.375*4).astype(np.int)
 
-        if nPixel == 1354: nc = np.round(deg2rad(0.963/2)*833.0/0.8*4).astype(np.int)
+        # for AQUA
+        if nPixel == 1354: nc = np.round(deg2rad(1.1/2)*705.0/1.0*4).astype(np.int)
         
 
         # return list
@@ -802,7 +806,7 @@ def find_match_index_noweight (sounder_los, sounder_sat, imager_pos_in, imager_s
 # func to get hdf attributes 
 def hdf_attributes(file_name, list_names):
 
-  list_values = []
+  dict1 = {}
 
   h = HDF(file_name)
   vs = h.vstart()
@@ -812,9 +816,9 @@ def hdf_attributes(file_name, list_names):
     stid = vs.attach(xid)
     nrecs, intmode, fields, size, name = stid.inquire()
     x = stid.read(nrecs)
-    list_values.append(x[0][0])
+    dict1[name1] = x[0][0]
     
   stid.detach()
-  return list_values
+  return dict1
     
 
