@@ -1,5 +1,5 @@
 import time
-import os
+import os,sys
 import glob
 import geo_call
 import geo
@@ -14,7 +14,11 @@ module_logger = logging.getLogger("airs_modis_parallel_run_matchup.geo_airs_modi
 # func to do the colocation
 def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
-    modis_lon, modis_lat, modis_satAzimuth, modis_satZenith = geo.read_modis_geo(modis_geo_files)
+    try:
+      modis_lon, modis_lat, modis_satAzimuth, modis_satZenith = geo.read_modis_geo(modis_geo_files)
+    except UnboundLocalError:
+      sys.exit(0)
+
     #modis_cloud = geo.read_modis_cloud(modis_cloud_files)
 
     #flen=len(modis_geo_files)+len(modis_cloud_files)
@@ -23,6 +27,11 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     #success=geo.convert_modis_cloudflag(modis_cloud)
     flen=len(modis_geo_files)
+    print('num of modis_geo_files: ', flen)
+
+    if flen == 0:
+      sys.exit(0)
+
     print(airs_files, modis_geo_files)
     #print("MODIS byte conversion are done in --- %s seconds --- for %d files " % (time.time() - start_time, flen))
 
