@@ -11,6 +11,8 @@ import logging
 
 module_logger = logging.getLogger("airs_modis_parallel_run_matchup.geo_airs_modis_ncloud")
 
+not_a_value = -9999.
+
 # func to do the colocation
 def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
@@ -194,11 +196,27 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     f.AIRS_END_LONGITUDE = lon_max
     """
 
+    ### print('1 type(airs_lon): ', type(airs_lon))
+    # flatten the array
+    airs_lon = airs_lon.ravel()
+    airs_lat = airs_lat.ravel()
+
+    # turn into a set with unique elements
+    set1 = list(map(np.unique, airs_lon))
+    set2 = list(map(np.unique, airs_lat))
+
+    # remove not_a_value
+    airs_lon = [ele for ele in set1 if ele != not_a_value]
+    airs_lat = [ele for ele in set2 if ele != not_a_value]
+
+    ### sys.exit(0)
+
     # rather, get lat lon box from lat lon data
-    lon_min = min(map(min, airs_lon))
-    lat_min = min(map(min, airs_lat))
-    lon_max = max(map(max, airs_lon))
-    lat_max = max(map(max, airs_lat))
+    ### lon_min = min(map(min, airs_lon))
+    lon_min = min(airs_lon)
+    lat_min = min(airs_lat)
+    lon_max = max(airs_lon)
+    lat_max = max(airs_lat)
 
     # f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max) # suggested by Qing
     f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max)
