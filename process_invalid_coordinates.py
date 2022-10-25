@@ -35,8 +35,13 @@ if __name__ == '__main__':
 
     dir1 = '/raid15/leipan/test/2002/09/06/AIRS.2002.09.06.160/IND_AIRS_MODIS1km.2002.09.06.160.nc'
 
+    dst_dir = '/raid15/leipan/products/20221025/'
+    print('dst_dir: ', dst_dir)
     src_dir = '/raid15/leipan/products/20220923/'
     input_file = 'Aqua_AIRS_MODIS1km_IND.1.failed.txt'
+
+    if not os.path.exists(dst_dir):
+      os.makedirs(dst_dir)
 
     with open(input_file) as f:
       lines = f.readlines()
@@ -56,9 +61,17 @@ if __name__ == '__main__':
         dd = str2[3]
         num = str2[4]
 
-        dir1 = src_dir+yy+'/'+mm+'/'+dd+'/'+'AIRS.'+yy+'.'+mm+'.'+dd+'.'+num+'/'
+        subdir_name = 'AIRS.'+yy+'.'+mm+'.'+dd+'.'+num
+        dir1 = src_dir+yy+'/'+mm+'/'+dd+'/'+subdir_name+'/'
         print('dir1: ', dir1)
         print('')
+
+        # copy to dst_dir
+        shutil.copytree(dir1, dst_dir+subdir_name)
+
+
+
+
 
 
       ### process(dir1)
