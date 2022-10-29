@@ -4,6 +4,7 @@ import glob
 import geo_call
 import geo
 import numpy as np
+import numpy.ma as ma
 import netCDF4 as nc4
 import shutil
 from datetime import datetime, timedelta
@@ -11,7 +12,7 @@ import logging
 
 module_logger = logging.getLogger("airs_modis_parallel_run_matchup.geo_airs_modis_ncloud")
 
-not_a_value = -9999.
+missing_value = -9999.0
 
 # func to do the colocation
 def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
@@ -39,6 +40,13 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
 
     # read AIRS data 
     airs_lon, airs_lat, airs_satAzimuth, airs_satRange, airs_satZenith = geo.read_airs_geo(airs_files)
+
+    # mask the missing values before any operations applied to lat/lon arrays
+    airs_lat = ma.masked_values(airs_lat, missing_value)
+    print('type(airs_lat): ', type(airs_lat))
+
+    airs_lon = ma.masked_values(airs_lon, missing_value)
+    print('type(airs_lon): ', type(airs_lon))
 
     flen=len(airs_files)
     
@@ -77,6 +85,7 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     """
 
     output_nc_file = os.path.join(output_dir, output_basename+'.nc')
+    print('output_nc_file: ', output_nc_file)
 
     ### f = nc4.Dataset(output_dir+'IND_AIRS_MODISMOD_201601'+str(iday)+'_'+str(i)+'.nc','w', format='NETCDF4') #'w' stands for write
     f = nc4.Dataset(output_nc_file, 'w', format='NETCDF4') #'w' stands for write
@@ -196,27 +205,11 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     f.AIRS_END_LONGITUDE = lon_max
     """
 
-    ### print('1 type(airs_lon): ', type(airs_lon))
-    # flatten the array
-    airs_lon = airs_lon.ravel()
-    airs_lat = airs_lat.ravel()
-
-    # turn into a set with unique elements
-    set1 = list(map(np.unique, airs_lon))
-    set2 = list(map(np.unique, airs_lat))
-
-    # remove not_a_value
-    airs_lon = [ele for ele in set1 if ele != not_a_value]
-    airs_lat = [ele for ele in set2 if ele != not_a_value]
-
-    ### sys.exit(0)
-
     # rather, get lat lon box from lat lon data
-    ### lon_min = min(map(min, airs_lon))
-    lon_min = min(airs_lon)
-    lat_min = min(airs_lat)
-    lon_max = max(airs_lon)
-    lat_max = max(airs_lat)
+    lon_min = np.min(airs_lon)
+    lat_min = np.min(airs_lat)
+    lon_max = np.max(airs_lon)
+    lat_max = np.max(airs_lat)
 
     # f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max) # suggested by Qing
     f.SOUTHBOUNDINGCOORDINATE = min(lat_min, lat_max)
