@@ -20,6 +20,7 @@ def call_match_airs_modis(airs_files, modis_geo_files, iday, i, output_dir):
     try:
       modis_lon, modis_lat, modis_satAzimuth, modis_satZenith = geo.read_modis_geo(modis_geo_files)
     except UnboundLocalError:
+      print('Error: UnboundLocalError.')
       sys.exit(0)
 
     #modis_cloud = geo.read_modis_cloud(modis_cloud_files)
